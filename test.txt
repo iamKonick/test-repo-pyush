@@ -1,1 +1,4 @@
 We are testing comment. 
+
+
+The magic is happening!
