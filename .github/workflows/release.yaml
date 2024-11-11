@@ -1,44 +1,40 @@
-name: Create tag
-
 on:
   push:
-    branches:
-      - main
-env:
-    TAG_VERSION: v0.0.0
-    PREVIOUS_TAG: 0.0.0
-    LATEST_TAG: 0.0.0
-    TOML_VERSION: 0.0.0
-jobs:
+    tags:
+      - 'v*'
 
-  create_tag:
+name: Create Release
+
+jobs:
+  release:
+    name: Create Release
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      with:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
           fetch-depth: 0
 
-    - name: Check the latest version
-      run: |
-        all_tags=$(git tag | sort -rV)
-        read -ra all_tags_vector <<< "$all_tags"
-        latest_tag_version="${all_tags_vector[0]#v}"
-        toml_version=$(grep -E '^version\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' pyproject.toml | \
-        echo "TOML_VERSION=${toml_version}" >>> $GITHUB_ENV
-        grep -o -E '[0-9]+\.[0-9]+\.[0-9]+')
-        function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
-        if [ $(toml_version#v) -ge $(latest_tag_version) ]; then
-        echo "NEW_TAG_FLAG='1'" >> $GITHUB_ENV
-        echo "::set-output name=tag-created::1"
-        fi
+      - name: Get Previous Tag
+        run: |
+          PREV_TAG=$(git describe --abbrev=0 --tags "${{ github.ref }}^")
+          echo "::set-env name=baseRef::$PREV_TAG"
 
-    - uses: butlerlogic/action-autotag@1.1.2
-      if: ${{ env.NEW_TAG_FLAG != '0' }} 
-      env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      with:
-        strategy: regex
-        root: pyproject.toml
-        regex_pattern: $TOML_VERSION
-        tag_prefix: v
+      - name: Generate Changelog
+        id: generate_changelog
+        uses: nblagoev/pull-release-notes-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          base-ref: ${{ env.baseRef }}
+          head-ref: ${{ github.ref }}
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: ${{steps.generate_changelog.outputs.result}}
+          draft: true
