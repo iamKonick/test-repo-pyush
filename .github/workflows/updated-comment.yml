@@ -3,8 +3,7 @@ on: pull_request
 jobs:
   example_comment_pr:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    permissions: write-all
     name: An example job to comment a PR
     steps:
       - name: Checkout
