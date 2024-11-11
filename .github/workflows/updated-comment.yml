@@ -13,4 +13,4 @@ jobs:
         uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
-             Please do a Self Review! Make sure everything is correct. Thank you !:wave:
+             Please do a Self Review! Make sure everything is correct. Thank you ! :wave:
